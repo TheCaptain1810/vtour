@@ -1,0 +1,8 @@
+// unnecessary folders
+panos
+plugins
+skin
+
+// unnecessary files
+*.exe
+tour_testingserver_macos
