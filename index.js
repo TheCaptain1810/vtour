@@ -39,9 +39,11 @@ function krpano_onready(krpano_interface) {
     const hlookatEl = document.getElementById("hlookat");
     const vlookatEl = document.getElementById("vlookat");
     const fovEl = document.getElementById("fov");
-    if (hlookatEl) hlookatEl.value = hlookat.toFixed(2);
-    if (vlookatEl) vlookatEl.value = vlookat.toFixed(2);
-    if (fovEl) fovEl.value = fov.toFixed(2);
+    if (hlookatEl)
+      hlookatEl.value = Math.max(-180, Math.min(180, hlookat)).toFixed(2);
+    if (vlookatEl)
+      vlookatEl.value = Math.max(-180, Math.min(180, vlookat)).toFixed(2);
+    if (fovEl) fovEl.value = Math.max(10, Math.min(140, fov)).toFixed(2);
     krpano.set("events.onviewchange", "js(updateCubeFromKrpano());");
     updateCubeFromKrpano();
   } else {
@@ -75,20 +77,25 @@ function applyCameraView(hlookat, vlookat, fov, tweenTime) {
   const fovEl = document.getElementById("fov");
   const tweenTimeEl = document.getElementById("tweenTime");
 
-  const targetH =
+  let targetH =
     hlookat !== undefined
       ? hlookat
       : parseFloat(hlookatEl ? hlookatEl.value : 0);
-  const targetV =
+  let targetV =
     vlookat !== undefined
       ? vlookat
       : parseFloat(vlookatEl ? vlookatEl.value : 0);
-  const targetFov =
+  let targetFov =
     fov !== undefined ? fov : parseFloat(fovEl ? fovEl.value : 90);
   const targetTweenTime =
     tweenTime !== undefined
       ? tweenTime
       : parseFloat(tweenTimeEl ? tweenTimeEl.value : 1);
+
+  // Clamp input values
+  targetH = Math.max(-180, Math.min(180, targetH));
+  targetV = Math.max(-180, Math.min(180, targetV));
+  targetFov = Math.max(10, Math.min(140, targetFov));
 
   if (
     isNaN(targetH) ||
@@ -139,8 +146,8 @@ function applyCameraView(hlookat, vlookat, fov, tweenTime) {
 
 function zoomIn() {
   if (!krpano) return;
-  const currentFov = krpano.get("view.fov") || 90;
-  const fovMin = krpano.get("view.fovmin") || 10;
+  const currentFov = krpano.get("view.f fov") || 90;
+  const fovMin = 10;
   const newFov = Math.max(currentFov - 10, fovMin);
   applyCameraView(
     krpano.get("view.hlookat"),
@@ -155,7 +162,7 @@ function zoomIn() {
 function zoomOut() {
   if (!krpano) return;
   const currentFov = krpano.get("view.fov") || 90;
-  const fovMax = krpano.get("view.fovmax") || 120;
+  const fovMax = 140;
   const newFov = Math.min(currentFov + 10, fovMax);
   applyCameraView(
     krpano.get("view.hlookat"),
@@ -191,7 +198,7 @@ function initThreeJSCube() {
   renderer.setSize(container.clientWidth, container.clientHeight);
   renderer.setPixelRatio(window.devicePixelRatio);
 
-  const cubeSize = size * 0.25;
+  const cubeSize = size * 0.35; // Increased from 0.25 to 0.35
   const geometry = new THREE.BoxGeometry(cubeSize, cubeSize, cubeSize);
   const materials = [
     new THREE.MeshBasicMaterial({ color: 0xff0000 }),
@@ -231,7 +238,7 @@ function onWindowResize() {
   }
   renderer.setSize(width, height);
   if (cube) {
-    const cubeSize = size * 0.25;
+    const cubeSize = size * 0.35; // Increased from 0.25 to 0.35
     cube.geometry = new THREE.BoxGeometry(cubeSize, cubeSize, cubeSize);
   }
 }
@@ -298,7 +305,10 @@ function updateCubeFromKrpano() {
   )
     return;
   isUpdatingCubeFromKrpano = true;
-  const krpanoH = krpano.get("view.hlookat") || 0;
+  const krpanoH = Math.max(
+    -180,
+    Math.min(180, krpano.get("view.hlookat") || 0)
+  );
   const krpanoV = krpano.get("view.vlookat") || 0;
   const targetCubeY = THREE.MathUtils.degToRad(-krpanoH);
   const targetCubeX = THREE.MathUtils.degToRad(krpanoV);
@@ -313,16 +323,22 @@ function updateCubeFromKrpano() {
   if (!inputFocusState.vlookat && vlookatEl)
     vlookatEl.value = krpanoV.toFixed(2);
   if (!inputFocusState.fov && fovEl)
-    fovEl.value = (krpano.get("view.fov") || 90).toFixed(2);
+    fovEl.value = Math.max(
+      10,
+      Math.min(140, krpano.get("view.fov") || 90)
+    ).toFixed(2);
   isUpdatingCubeFromKrpano = false;
 }
 
 function updateKrpanoFromCube() {
   if (!krpano || isUpdatingKrpanoFromCube || !cube) return;
   isUpdatingKrpanoFromCube = true;
-  const krpanoH = -THREE.MathUtils.radToDeg(cube.rotation.y);
+  const krpanoH = Math.max(
+    -180,
+    Math.min(180, -THREE.MathUtils.radToDeg(cube.rotation.y))
+  );
   const krpanoV = THREE.MathUtils.radToDeg(cube.rotation.x);
-  const currentFov = krpano.get("view.fov") || 90;
+  const currentFov = Math.max(10, Math.min(140, krpano.get("view.fov") || 90));
   const krpanoCommand = `lookto(${krpanoH}, ${krpanoV}, ${currentFov}, 0.0, true, true, true);`;
   try {
     krpano.call(krpanoCommand);
