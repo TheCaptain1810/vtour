@@ -242,7 +242,7 @@ function onMouseMove(event) {
 
   // Rotate the cube directly based on mouse movement
   cube.rotation.y += deltaX * rotationSpeed;
-  cube.rotation.x -= deltaY * rotationSpeed;
+  cube.rotation.x += deltaY * rotationSpeed;
 
   // Clamp X rotation (pitch) to prevent flipping (mimics vlookat limits -90 to 90)
   cube.rotation.x = Math.max(
