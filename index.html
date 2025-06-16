@@ -1,190 +1,48 @@
 <!DOCTYPE html>
 <html>
-<head>
-    <title>krpano Camera Control with JavaScript</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0" />
+  <head>
+    <title>krpano Camera Control with JavaScript & Basic 3D Navigator</title>
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0"
+    />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black" />
-    <style>
-        body { margin: 0; padding: 0; overflow: hidden; }
-        html, body, #pano { width: 100%; height: 100%; }
-        #controls {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: rgba(0, 0, 0, 0.7);
-            padding: 15px;
-            border-radius: 8px;
-            color: white;
-            font-family: Arial, sans-serif;
-            z-index: 100;
-        }
-        #controls label, #controls input, #controls button {
-            display: block;
-            margin-bottom: 8px;
-            width: 100%;
-            box-sizing: border-box;
-            color: white;
-        }
-        #controls input {
-            color: black;
-        }
-        #controls button {
-            cursor: pointer;
-            padding: 8px 12px;
-            background-color: #007bff;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            transition: background-color 0.3s;
-        }
-        #controls button:hover {
-            background-color: #0056b3;
-        }
-        #viewcube_container {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            filter: drop-shadow(0 0 5px rgba(0,0,0,0.5));
-            transform: perspective(500px) rotateX(20deg) rotateY(20deg);
-        }
-    </style>
-</head>
-<body>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div id="pano">
+      <!-- krpano viewer will be embedded here -->
+    </div>
 
-<div id="pano">
-    <!-- krpano viewer will be embedded here -->
-</div>
+    <div id="controls">
+      <h3>Camera Control</h3>
+      <label for="hlookat">HLOOKAT:</label>
+      <input type="number" id="hlookat" value="0" step="5" />
 
-<div id="controls">
-    <h3>Camera Control</h3>
-    <label for="hlookat">HLOOKAT:</label>
-    <input type="number" id="hlookat" value="0" step="5">
+      <label for="vlookat">VLOOKAT:</label>
+      <input type="number" id="vlookat" value="0" step="5" />
 
-    <label for="vlookat">VLOOKAT:</label>
-    <input type="number" id="vlookat" value="0" step="5">
+      <label for="fov">FOV:</label>
+      <input type="number" id="fov" value="90" step="5" />
 
-    <label for="fov">FOV:</label>
-    <input type="number" id="fov" value="90" step="5">
+      <label for="tweenTime">Tween Time (s):</label>
+      <input type="number" id="tweenTime" value="1.0" step="0.1" />
 
-    <label for="tweenTime">Tween Time (s):</label>
-    <input type="number" id="tweenTime" value="1.0" step="0.1">
+      <button onclick="applyCameraView()">Apply View</button>
+      <button onclick="zoomIn()">Zoom In</button>
+      <button onclick="zoomOut()">Zoom Out</button>
+    </div>
 
-    <button onclick="applyCameraView()">Apply View</button>
-    <button onclick="zoomIn()">Zoom In</button>
-    <button onclick="zoomOut()">Zoom Out</button>
-</div>
+    <div id="navCubeContainer">
+      <canvas id="navCubeCanvas"></canvas>
+    </div>
 
-<!-- krpano embedding script -->
-<script src="tour.js"></script>
-<script>
-    var krpano = null;
-    let lastX = 0, lastY = 0;
+    <!-- krpano embedding script -->
+    <script src="tour.js"></script>
+    <!-- Three.js library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
-    function krpano_onready(krpano_interface) {
-        krpano = krpano_interface;
-        console.log("krpano is ready!", krpano);
-        if (krpano) {
-            document.getElementById('hlookat').value = krpano.get("view.hlookat");
-            document.getElementById('vlookat').value = krpano.get("view.vlookat");
-            document.getElementById('fov').value = krpano.get("view.fov");
-        }
-    }
-
-    embedpano({
-        swf: "tour.swf",
-        xml: "tour.xml",
-        target: "pano",
-        html5: "auto",
-        onready: krpano_onready
-    });
-
-    function applyCameraView(hlookat, vlookat, fov, tweenTime) {
-        if (!krpano) {
-            console.error("krpano object not available yet.");
-            return;
-        }
-        const targetH = hlookat !== undefined ? hlookat : parseFloat(document.getElementById('hlookat').value);
-        const targetV = vlookat !== undefined ? vlookat : parseFloat(document.getElementById('vlookat').value);
-        const targetFov = fov !== undefined ? fov : parseFloat(document.getElementById('fov').value);
-        const targetTweenTime = tweenTime !== undefined ? tweenTime : parseFloat(document.getElementById('tweenTime').value);
-        if (isNaN(targetH) || isNaN(targetV) || isNaN(targetFov) || isNaN(targetTweenTime)) {
-            console.error("Invalid camera parameters. Please enter numbers.");
-            return;
-        }
-        const krpanoCommand = `lookto(${targetH}, ${targetV}, ${targetFov}, ${targetTweenTime}, true, true, true);`;
-        console.log(`Executing krpano command: ${krpanoCommand}`);
-        krpano.call(krpanoCommand);
-    }
-
-    function zoomIn() {
-        if (!krpano) {
-            console.error("krpano object not available yet.");
-            return;
-        }
-        const currentFov = krpano.get("view.fov");
-        const fovMin = krpano.get("view.fovmin");
-        const newFov = Math.max(currentFov - 10, fovMin);
-        applyCameraView(krpano.get("view.hlookat"), krpano.get("view.vlookat"), newFov, 0.5);
-        document.getElementById('fov').value = newFov;
-    }
-
-    function zoomOut() {
-        if (!krpano) {
-            console.error("krpano object not available yet.");
-            return;
-        }
-        const currentFov = krpano.get("view.fov");
-        const fovMax = krpano.get("view.fovmax");
-        const newFov = Math.min(currentFov + 10, fovMax);
-        applyCameraView(krpano.get("view.hlookat"), krpano.get("view.vlookat"), newFov, 0.5);
-        document.getElementById('fov').value = newFov;
-    }
-
-    function viewcube_click(stagex, stagey) {
-        if (!krpano) {
-            console.error("krpano object not available yet.");
-            return;
-        }
-        const layer = krpano.get("layer[viewcube]");
-        const scale = layer.scale;
-        const offsetX = layer.pixelx;
-        const offsetY = layer.pixely;
-        const x = (stagex - offsetX) / scale;
-        const y = (stagey - offsetY) / scale;
-
-        if (x >= 75 && x <= 125 && y >= 75 && y <= 125) {
-            applyCameraView(0, 0, 90, 1.0); // Front
-        } else if (x >= 75 && x <= 125 && y >= 175 && y <= 225) {
-            applyCameraView(180, 0, 90, 1.0); // Back
-        } else if (x >= 25 && x <= 75 && y >= 75 && y <= 125) {
-            applyCameraView(-90, 0, 90, 1.0); // Left
-        } else if (x >= 125 && x <= 175 && y >= 75 && y <= 125) {
-            applyCameraView(90, 0, 90, 1.0); // Right
-        } else if (x >= 75 && x <= 125 && y >= 25 && y <= 75) {
-            applyCameraView(0, -90, 90, 1.0); // Up
-        } else if (x >= 75 && x <= 125 && y >= 125 && y <= 175) {
-            applyCameraView(0, 90, 90, 1.0); // Down
-        }
-    }
-
-    function viewcube_drag_start(stagex, stagey) {
-        lastX = stagex;
-        lastY = stagey;
-    }
-
-    function viewcube_drag_move(stagex, stagey) {
-        if (!krpano) return;
-        const deltaX = stagex - lastX;
-        const deltaY = stagey - lastY;
-        const currentH = krpano.get("view.hlookat");
-        const currentV = krpano.get("view.vlookat");
-        const sensitivity = 0.5;
-        applyCameraView(currentH + deltaX * sensitivity, currentV - deltaY * sensitivity, krpano.get("view.fov"), 0.1);
-        lastX = stagex;
-        lastY = stagey;
-    }
-</script>
-
-</body>
+    <script src="index.js"></script>
+  </body>
 </html>
