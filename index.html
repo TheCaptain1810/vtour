@@ -1,185 +1,48 @@
 <!DOCTYPE html>
 <html>
-<head>
-    <title>krpano Camera Control with JavaScript</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0" />
+  <head>
+    <title>krpano Camera Control with JavaScript & Basic 3D Navigator</title>
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0"
+    />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black" />
-    <style>
-        body { margin: 0; padding: 0; overflow: hidden; }
-        html, body, #pano { width: 100%; height: 100%; }
-        #controls {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: rgba(0, 0, 0, 0.7);
-            padding: 15px;
-            border-radius: 8px;
-            color: white;
-            font-family: Arial, sans-serif;
-            z-index: 100;
-        }
-        #controls label, #controls input, #controls button {
-            display: block;
-            margin-bottom: 8px;
-            width: 100%;
-            box-sizing: border-box;
-            color: white; /* For input/button text */
-        }
-        #controls button {
-            cursor: pointer;
-            padding: 8px 12px;
-            background-color: #007bff;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            transition: background-color 0.3s;
-        }
-        #controls button:hover {
-            background-color: #0056b3;
-        }
-    </style>
-</head>
-<body>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div id="pano">
+      <!-- krpano viewer will be embedded here -->
+    </div>
 
-<div id="pano">
-    <!-- krpano viewer will be embedded here -->
-</div>
+    <div id="controls">
+      <h3>Camera Control</h3>
+      <label for="hlookat">HLOOKAT:</label>
+      <input type="number" id="hlookat" value="0" step="5" />
 
-<div id="controls">
-    <h3>Camera Control</h3>
-    <label for="hlookat">HLOOKAT:</label>
-    <input type="number" id="hlookat" value="0" step="5">
+      <label for="vlookat">VLOOKAT:</label>
+      <input type="number" id="vlookat" value="0" step="5" />
 
-    <label for="vlookat">VLOOKAT:</label>
-    <input type="number" id="vlookat" value="0" step="5">
+      <label for="fov">FOV:</label>
+      <input type="number" id="fov" value="90" step="5" />
 
-    <label for="fov">FOV:</label>
-    <input type="number" id="fov" value="90" step="5">
+      <label for="tweenTime">Tween Time (s):</label>
+      <input type="number" id="tweenTime" value="1.0" step="0.1" />
 
-    <label for="tweenTime">Tween Time (s):</label>
-    <input type="number" id="tweenTime" value="1.0" step="0.1">
+      <button onclick="applyCameraView()">Apply View</button>
+      <button onclick="zoomIn()">Zoom In</button>
+      <button onclick="zoomOut()">Zoom Out</button>
+    </div>
 
-    <button onclick="applyCameraView()">Apply View</button>
-    <button onclick="zoomIn()">Zoom In</button>
-    <button onclick="zoomOut()">Zoom Out</button>
-</div>
+    <div id="navCubeContainer">
+      <canvas id="navCubeCanvas"></canvas>
+    </div>
 
-<!-- krpano embedding script -->
-<script src="tour.js"></script>
-<script>
-    var krpano = null; // Global variable to hold the krpano object
+    <!-- krpano embedding script -->
+    <script src="tour.js"></script>
+    <!-- Three.js library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
-    // This function is called by the krpano embedding script when it's ready
-    function krpano_onready(krpano_interface) {
-        krpano = krpano_interface;
-        console.log("krpano is ready!", krpano);
-
-        // You can set initial view or do other things here if needed
-        // For example, get current view to populate input fields:
-        if (krpano) {
-            document.getElementById('hlookat').value = krpano.get("view.hlookat");
-            document.getElementById('vlookat').value = krpano.get("view.vlookat");
-            document.getElementById('fov').value = krpano.get("view.fov");
-        }
-    }
-
-    // Embed the krpano viewer
-    embedpano({
-        swf: "tour.swf",       // Path to your krpano Flash file
-        xml: "tour.xml",       // Path to your krpano XML file
-        target: "pano",          // ID of the HTML element where the viewer will be embedded
-        html5: "auto",           // Use HTML5 viewer if supported, fallback to Flash
-        onready: krpano_onready  // Callback function when krpano is ready
-    });
-
-    // =============================================================
-    // Custom JavaScript functions to control krpano
-    // =============================================================
-
-    /**
-     * Applies a new camera view based on input fields.
-     * @param {number} hlookat Optional. Horizontal lookat angle. If not provided, gets from input field.
-     * @param {number} vlookat Optional. Vertical lookat angle. If not provided, gets from input field.
-     * @param {number} fov Optional. Field of view. If not provided, gets from input field.
-     * @param {number} tweenTime Optional. Animation time. If not provided, gets from input field.
-     */
-    function applyCameraView(hlookat, vlookat, fov, tweenTime) {
-        if (!krpano) {
-            console.error("krpano object not available yet.");
-            return;
-        }
-
-        const targetH = hlookat !== undefined ? hlookat : parseFloat(document.getElementById('hlookat').value);
-        const targetV = vlookat !== undefined ? vlookat : parseFloat(document.getElementById('vlookat').value);
-        const targetFov = fov !== undefined ? fov : parseFloat(document.getElementById('fov').value);
-        const targetTweenTime = tweenTime !== undefined ? tweenTime : parseFloat(document.getElementById('tweenTime').value);
-
-        // Basic validation for numbers
-        if (isNaN(targetH) || isNaN(targetV) || isNaN(targetFov) || isNaN(targetTweenTime)) {
-            console.error("Invalid camera parameters. Please enter numbers.");
-            return;
-        }
-
-        // Use krpano's lookto action for smooth animation
-        // lookto(h, v, fov, transitiontime, h_range, v_range, fov_range, callback);
-        const krpanoCommand = `lookto(${targetH}, ${targetV}, ${targetFov}, ${targetTweenTime}, true, true, true);`;
-        
-        console.log(`Executing krpano command: ${krpanoCommand}`);
-        krpano.call(krpanoCommand);
-    }
-
-    /**
-     * Zooms in by a fixed amount.
-     */
-    function zoomIn() {
-        if (!krpano) {
-            console.error("krpano object not available yet.");
-            return;
-        }
-        const currentFov = krpano.get("view.fov");
-        const fovMin = krpano.get("view.fovmin");
-        const newFov = Math.max(currentFov - 10, fovMin); // Zoom in by 10, but not less than fovmin
-        applyCameraView(
-            krpano.get("view.hlookat"), // Keep current HLOOKAT
-            krpano.get("view.vlookat"), // Keep current VLOOKAT
-            newFov,                     // New FOV
-            0.5                         // Faster tween time for zoom buttons
-        );
-        document.getElementById('fov').value = newFov; // Update input field
-    }
-
-    /**
-     * Zooms out by a fixed amount.
-     */
-    function zoomOut() {
-        if (!krpano) {
-            console.error("krpano object not available yet.");
-            return;
-        }
-        const currentFov = krpano.get("view.fov");
-        const fovMax = krpano.get("view.fovmax");
-        const newFov = Math.min(currentFov + 10, fovMax); // Zoom out by 10, but not more than fovmax
-        applyCameraView(
-            krpano.get("view.hlookat"), // Keep current HLOOKAT
-            krpano.get("view.vlookat"), // Keep current VLOOKAT
-            newFov,                     // New FOV
-            0.5                         // Faster tween time for zoom buttons
-        );
-        document.getElementById('fov').value = newFov; // Update input field
-    }
-
-    // You could similarly add pan and tilt functions:
-    /*
-    function panLeft() {
-        if (!krpano) return;
-        const currentH = krpano.get("view.hlookat");
-        applyCameraView(currentH - 20, krpano.get("view.vlookat"), krpano.get("view.fov"), 0.5);
-        document.getElementById('hlookat').value = krpano.get("view.hlookat");
-    }
-    */
-
-</script>
-
-</body>
+    <script src="index.js"></script>
+  </body>
 </html>
