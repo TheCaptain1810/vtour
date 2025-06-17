@@ -1,4 +1,4 @@
-var krpano = null;
+let krpano = null;
 let scene, camera, renderer, cube;
 let isDragging = false;
 let previousMouseX = 0;
@@ -54,8 +54,8 @@ function krpano_onready(krpano_interface) {
 function embedKrpanoWithFallback() {
   try {
     embedpano({
-      swf: "tour.swf",
-      xml: "tour.xml",
+      swf: "../tour.swf",
+      xml: "../tour.xml",
       target: "pano",
       html5: "auto",
       onready: krpano_onready,
