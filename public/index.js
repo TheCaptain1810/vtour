@@ -146,7 +146,7 @@ function applyCameraView(hlookat, vlookat, fov, tweenTime) {
 
 function zoomIn() {
   if (!krpano) return;
-  const currentFov = krpano.get("view.f fov") || 90;
+  const currentFov = krpano.get("view.fov") || 90;
   const fovMin = 10;
   const newFov = Math.max(currentFov - 10, fovMin);
   applyCameraView(
@@ -369,6 +369,11 @@ document.addEventListener("DOMContentLoaded", () => {
   initThreeJSCube();
   setupInputFocusTracking();
   embedKrpanoWithFallback();
+  // Add event listeners for zoom buttons
+  const zoomInBtn = document.getElementById("zoomIn");
+  if (zoomInBtn) zoomInBtn.addEventListener("click", zoomIn);
+  const zoomOutBtn = document.getElementById("zoomOut");
+  if (zoomOutBtn) zoomOutBtn.addEventListener("click", zoomOut);
 });
 
 window.addEventListener("unload", cleanup);
