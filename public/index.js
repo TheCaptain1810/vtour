@@ -310,6 +310,7 @@ function updateCubeFromKrpano() {
     Math.min(180, krpano.get("view.hlookat") || 0)
   );
   const krpanoV = krpano.get("view.vlookat") || 0;
+  const fov = Math.max(10, Math.min(140, krpano.get("view.fov") || 90));
   const targetCubeY = THREE.MathUtils.degToRad(-krpanoH);
   const targetCubeX = THREE.MathUtils.degToRad(krpanoV);
   const tweenSpeed = 0.1;
@@ -323,10 +324,12 @@ function updateCubeFromKrpano() {
   if (!inputFocusState.vlookat && vlookatEl)
     vlookatEl.value = krpanoV.toFixed(2);
   if (!inputFocusState.fov && fovEl)
-    fovEl.value = Math.max(
-      10,
-      Math.min(140, krpano.get("view.fov") || 90)
-    ).toFixed(2);
+    fovEl.value = fov.toFixed(2);
+  // Send camera data to APS viewer iframe
+  const apsIframe = document.getElementById('aps-viewer');
+  if (apsIframe && apsIframe.contentWindow) {
+    apsIframe.contentWindow.postMessage({ hlookat: krpanoH, vlookat: krpanoV, fov }, '*');
+  }
   isUpdatingCubeFromKrpano = false;
 }
 
