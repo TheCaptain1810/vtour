@@ -2,6 +2,7 @@
 panos
 plugins
 skin
+node_modules
 
 // unnecessary files
 *.exe
